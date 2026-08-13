@@ -17,10 +17,26 @@ class HealthCalculator {
     return '肥胖';
   }
 
-  /// BMR 基础代谢率(Mifflin-St Jeor 公式)
+  /// BMR 基础代谢率
+  ///
+  /// - 若填了体脂率:用 Katch-McArdle 公式(基于去脂体重,更准),
+  ///   BMR = 370 + 21.6 × 去脂体重(kg),去脂体重 = 体重 × (1 - 体脂率)
+  /// - 否则:用 Mifflin-St Jeor 公式(基于身高/体重/年龄/性别)
   static double bmr(UserProfile p) {
+    final bf = p.bodyFat;
+    if (bf != null && bf > 0 && bf < 60) {
+      final leanMass = p.weightKg * (1 - bf / 100.0);
+      return 370 + 21.6 * leanMass;
+    }
     final base = 10 * p.weightKg + 6.25 * p.heightCm - 5 * p.age;
     return p.gender == Gender.male ? base + 5 : base - 161;
+  }
+
+  /// 当前 BMR 采用的公式名(用于界面提示)
+  static String bmrMethod(UserProfile p) {
+    final bf = p.bodyFat;
+    if (bf != null && bf > 0 && bf < 60) return 'Katch-McArdle(基于体脂率,更准)';
+    return 'Mifflin-St Jeor(通用估算)';
   }
 
   /// 活动系数
@@ -49,7 +65,9 @@ class HealthCalculator {
     final t = tdee(p);
     switch (p.goal) {
       case Goal.lose:
-        return t - 500; // 减脂:每日减 500 千卡
+        return t - 500; // 快速减脂:每日减 500 千卡
+      case Goal.slowLose:
+        return t - 300; // 温和减脂:每日减 300 千卡
       case Goal.gain:
         return t + 300; // 增肌:每日加 300 千卡
       case Goal.maintain:
@@ -76,11 +94,13 @@ class HealthCalculator {
   static String goalText(Goal goal) {
     switch (goal) {
       case Goal.lose:
-        return '减脂';
-      case Goal.maintain:
-        return '维持';
+        return '快速减脂';
+      case Goal.slowLose:
+        return '温和减脂';
+    case Goal.maintain:
+        return '维持体重';
       case Goal.gain:
-        return '增肌';
+        return '增肌增重';
     }
   }
 

@@ -19,6 +19,7 @@ class _ProfilePageState extends State<ProfilePage> {
   final _heightCtrl = TextEditingController();
   final _weightCtrl = TextEditingController();
   final _ageCtrl = TextEditingController();
+  final _bodyFatCtrl = TextEditingController();
   final _apiKeyCtrl = TextEditingController();
 
   Gender _gender = Gender.male;
@@ -32,6 +33,7 @@ class _ProfilePageState extends State<ProfilePage> {
     _heightCtrl.dispose();
     _weightCtrl.dispose();
     _ageCtrl.dispose();
+    _bodyFatCtrl.dispose();
     _apiKeyCtrl.dispose();
     super.dispose();
   }
@@ -41,6 +43,7 @@ class _ProfilePageState extends State<ProfilePage> {
     _heightCtrl.text = p.heightCm.toStringAsFixed(0);
     _weightCtrl.text = p.weightKg.toStringAsFixed(0);
     _ageCtrl.text = p.age.toString();
+    _bodyFatCtrl.text = p.bodyFat == null ? '' : p.bodyFat!.toStringAsFixed(0);
     _apiKeyCtrl.text = app.apiKey;
     _gender = p.gender;
     _activity = p.activityLevel;
@@ -57,6 +60,7 @@ class _ProfilePageState extends State<ProfilePage> {
       gender: _gender,
       activityLevel: _activity,
       goal: _goal,
+      bodyFat: double.tryParse(_bodyFatCtrl.text.trim()),
     );
     await app.updateProfile(profile);
     await app.updateApiKey(_apiKeyCtrl.text.trim());
@@ -81,11 +85,13 @@ class _ProfilePageState extends State<ProfilePage> {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          _buildHealthCard(bmi, tdee, target),
+          _buildHealthCard(app, bmi, tdee, target),
           const SizedBox(height: 16),
           _buildField('身高(cm)', _heightCtrl, TextInputType.number),
           _buildField('体重(kg)', _weightCtrl, TextInputType.number),
           _buildField('年龄', _ageCtrl, TextInputType.number),
+          _buildField('体脂率 %(选填,填了基础代谢算得更准)', _bodyFatCtrl,
+              TextInputType.number),
           const SizedBox(height: 8),
           _buildGender(),
           const SizedBox(height: 8),
@@ -107,7 +113,7 @@ class _ProfilePageState extends State<ProfilePage> {
     );
   }
 
-  Widget _buildHealthCard(double bmi, double tdee, double target) {
+  Widget _buildHealthCard(AppState app, double bmi, double tdee, double target) {
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -120,6 +126,9 @@ class _ProfilePageState extends State<ProfilePage> {
                 '${bmi.toStringAsFixed(1)}(${HealthCalculator.bmiCategory(bmi)})'),
             _row('每日消耗 TDEE', '${tdee.toStringAsFixed(0)} 千卡'),
             _row('每日推荐摄入', '${target.toStringAsFixed(0)} 千卡'),
+            const SizedBox(height: 4),
+            Text('代谢算法:${HealthCalculator.bmrMethod(app.profile)}',
+                style: const TextStyle(fontSize: 12, color: Colors.black54)),
           ],
         ),
       ),
@@ -155,16 +164,17 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   Widget _buildGender() {
-    return Row(
+    return Wrap(
+      crossAxisAlignment: WrapCrossAlignment.center,
+      spacing: 8,
+      runSpacing: 8,
       children: [
         const Text('性别:'),
-        const SizedBox(width: 12),
         ChoiceChip(
           label: const Text('男'),
           selected: _gender == Gender.male,
           onSelected: (_) => setState(() => _gender = Gender.male),
         ),
-        const SizedBox(width: 8),
         ChoiceChip(
           label: const Text('女'),
           selected: _gender == Gender.female,
@@ -192,17 +202,23 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   Widget _buildGoal() {
-    return Row(
-      children: Goal.values.map((g) {
-        return Padding(
-          padding: const EdgeInsets.only(right: 8),
-          child: ChoiceChip(
-            label: Text(HealthCalculator.goalText(g)),
-            selected: _goal == g,
-            onSelected: (_) => setState(() => _goal = g),
-          ),
-        );
-      }).toList(),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text('目标:', style: TextStyle(color: Colors.black87)),
+        const SizedBox(height: 8),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: Goal.values.map((g) {
+            return ChoiceChip(
+              label: Text(HealthCalculator.goalText(g)),
+              selected: _goal == g,
+     onSelected: (_) => setState(() => _goal = g),
+            );
+          }).toList(),
+        ),
+      ],
     );
   }
 

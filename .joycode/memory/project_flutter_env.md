@@ -12,6 +12,6 @@ type: project
 - 平台工程已生成(web + windows),用 `flutter create . --platforms=web,windows` 补齐
 - 本地看效果用 `C:\flutter\bin\flutter run -d chrome`(浏览器最快,无需 VS C++ 工具链)
 
-**Why:** 用户网络在国外源下载会卡死(曾因 Dart SDK 下载卡在国外源导致进程死锁,需重启);识别功能需用户自己申请阿里云百炼免费 Key。
+**Why:** 用户网络在国外源下载会卡死(曾因 Dart SDK 下载卡在国外源导致进程死锁,需重启);识别功能需用户自己申请免费 Key,现支持二选一:阿里云百炼(通义千问-VL, qwen-vl-plus)或火山方舟(豆包视觉),均为 OpenAI 兼容接口,用户在「我的」页选平台+粘贴 Key。用户明确不接受自己出钱/占额度,也调研确认"无 Key 白嫖接口"不存在,故最终采用"用户自填 Key + 极致引导"方案。
 
 **How to apply:** 后续跑/构建都用 C:\flutter\bin\flutter 全路径 + chrome 目标;镜像变量已永久生效无需重设;新终端才能让 setx 变量生效;运行终端需常开,改代码按 r 热重载。

@@ -2,7 +2,9 @@ enum Gender { male, female }
 
 enum ActivityLevel { sedentary, light, moderate, active, veryActive }
 
-enum Goal { lose, maintain, gain }
+/// 目标:注意顺序!旧数据里 lose=0/maintain=1/gain=2,新增项必须追加到末尾,
+/// 否则旧存档下标会错位。slowLose(温和减脂)追加在最后。
+enum Goal { lose, maintain, gain, slowLose }
 
 /// 用户身体资料
 class UserProfile {
@@ -12,6 +14,7 @@ class UserProfile {
   final Gender gender; // 性别
   final ActivityLevel activityLevel; // 活动水平
   final Goal goal; // 目标:减脂/维持/增肌
+  final double? bodyFat; // 体脂率(百分比,选填,如 20 表示 20%)
 
   UserProfile({
     required this.heightCm,
@@ -20,6 +23,7 @@ class UserProfile {
     required this.gender,
     this.activityLevel = ActivityLevel.moderate,
     this.goal = Goal.maintain,
+    this.bodyFat,
   });
 
   UserProfile copyWith({
@@ -29,6 +33,7 @@ class UserProfile {
     Gender? gender,
     ActivityLevel? activityLevel,
     Goal? goal,
+    double? bodyFat,
   }) {
     return UserProfile(
       heightCm: heightCm ?? this.heightCm,
@@ -37,6 +42,7 @@ class UserProfile {
       gender: gender ?? this.gender,
       activityLevel: activityLevel ?? this.activityLevel,
       goal: goal ?? this.goal,
+      bodyFat: bodyFat ?? this.bodyFat,
     );
   }
 
@@ -54,6 +60,7 @@ class UserProfile {
         gender: Gender.values[json['gender'] as int],
         activityLevel: ActivityLevel.values[json['activityLevel'] as int? ?? 2],
         goal: Goal.values[json['goal'] as int? ?? 1],
+        bodyFat: (json['bodyFat'] as num?)?.toDouble(),
       );
 
   Map<String, dynamic> toJson() => {
@@ -63,5 +70,6 @@ class UserProfile {
         'gender': gender.index,
         'activityLevel': activityLevel.index,
         'goal': goal.index,
+        'bodyFat': bodyFat,
       };
 }
