@@ -8,6 +8,7 @@ class StorageService {
   static const _kProfile = 'user_profile';
   static const _kApiKey = 'api_key';
   static const _kHistory = 'meal_history';
+  static const _kProvider = 'ai_provider';
 
   /// 保存用户资料
   static Future<void> saveProfile(UserProfile profile) async {
@@ -36,6 +37,18 @@ class StorageService {
   static Future<String> loadApiKey() async {
     final prefs = await SharedPreferences.getInstance();
     return prefs.getString(_kApiKey) ?? '';
+  }
+
+  /// 保存所选大模型平台(存枚举下标)
+  static Future<void> saveProvider(int index) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt(_kProvider, index);
+  }
+
+  /// 读取所选平台下标(默认 0 = 阿里云)
+  static Future<int> loadProvider() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getInt(_kProvider) ?? 0;
   }
 
   /// 追加一条饮食记录

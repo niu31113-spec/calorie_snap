@@ -51,7 +51,8 @@ class _RecognizePageState extends State<RecognizePage> {
       _error = null;
     });
     try {
-      final service = FoodRecognitionService(apiKey: app.apiKey);
+      final service =
+          FoodRecognitionService(apiKey: app.apiKey, provider: app.provider);
       final result = await service.recognize(_imageBytes!);
       if (result.items.isEmpty) {
         setState(() => _error = '没有识别到食物,换一张更清晰的照片试试。');

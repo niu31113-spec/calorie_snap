@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
 import '../models/user_profile.dart';
+import '../services/food_recognition_service.dart';
 import '../services/health_calculator.dart';
 import '../state/app_state.dart';
 
@@ -22,6 +24,7 @@ class _ProfilePageState extends State<ProfilePage> {
   Gender _gender = Gender.male;
   ActivityLevel _activity = ActivityLevel.moderate;
   Goal _goal = Goal.maintain;
+  AiProvider _provider = AiProvider.aliyun;
   bool _inited = false;
 
   @override
@@ -42,6 +45,7 @@ class _ProfilePageState extends State<ProfilePage> {
     _gender = p.gender;
     _activity = p.activityLevel;
     _goal = p.goal;
+    _provider = app.provider;
     _inited = true;
   }
 
@@ -56,6 +60,7 @@ class _ProfilePageState extends State<ProfilePage> {
     );
     await app.updateProfile(profile);
     await app.updateApiKey(_apiKeyCtrl.text.trim());
+    await app.updateProvider(_provider);
     if (mounted) {
       ScaffoldMessenger.of(context)
           .showSnackBar(const SnackBar(content: Text('已保存')));
@@ -202,19 +207,87 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   Widget _buildApiKey() {
+    final apply = _provider.applyUrl;
+    return Card(
+      color: Colors.blue.shade50,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Icon(Icons.vpn_key, size: 20, color: Colors.blue),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text('拍照识别配置',
+                      style: Theme.of(context).textTheme.titleMedium),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              '识别用的是大模型,需要一个免费 API Key。新用户都有免费额度,'
+              '日常拍照识别完全够用。Key 只保存在你自己的手机/电脑上,不会上传。',
+              style: TextStyle(fontSize: 13, color: Colors.black87),
+            ),
+            const SizedBox(height: 16),
+            const Text('第 1 步:选择一个平台(哪个好申请用哪个)',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+            const SizedBox(height: 8),
+            _buildProviderSelector(),
+            const SizedBox(height: 16),
+            const Text('第 2 步:打开官网申请(点下面按钮复制网址,粘到浏览器打开)',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+            const SizedBox(height: 8),
+            _buildCopyUrlButton(apply),
+            const SizedBox(height: 16),
+            const Text('第 3 步:登录后创建 API Key,复制粘贴到下面',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+            const SizedBox(height: 8),
+            _buildField('把 API Key 粘贴到这里', _apiKeyCtrl, TextInputType.text),
+            const SizedBox(height: 4),
+            const Text('填好后别忘了点最下方「保存」按钮。',
+                style: TextStyle(fontSize: 12, color: Colors.black54)),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildProviderSelector() {
+    return Column(
+      children: AiProvider.values.map((p) {
+        return RadioListTile<AiProvider>(
+          contentPadding: EdgeInsets.zero,
+          dense: true,
+          value: p,
+          groupValue: _provider,
+          title: Text(p.label, style: const TextStyle(fontSize: 14)),
+          onChanged: (v) => setState(() => _provider = v ?? _provider),
+        );
+      }).toList(),
+    );
+  }
+
+  Widget _buildCopyUrlButton(String url) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _buildField('大模型 API Key', _apiKeyCtrl, TextInputType.text),
-        const Padding(
-          padding: EdgeInsets.only(left: 4, top: 4),
-          child: Text(
-            '用于拍照识别食物,基本免费。\n'
-            '申请步骤:①打开阿里云百炼 bailian.console.aliyun.com '
-            '②登录后在「API-KEY」页面创建 Key ③新用户有免费额度,拍照日常够用。\n'
-            'Key 只保存在本机,不会上传。',
-            style: TextStyle(fontSize: 12, color: Colors.black54),
-          ),
+        SelectableText(url,
+            style: const TextStyle(fontSize: 13, color: Colors.blue)),
+        const SizedBox(height: 6),
+        OutlinedButton.icon(
+          onPressed: () async {
+            await Clipboard.setData(ClipboardData(text: url));
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('网址已复制,去浏览器粘贴打开即可')),
+              );
+            }
+          },
+          icon: const Icon(Icons.copy, size: 18),
+          label: const Text('复制申请网址'),
         ),
       ],
     );

@@ -3,19 +3,64 @@ import 'dart:typed_data';
 import 'package:http/http.dart' as http;
 import '../models/food_result.dart';
 
+/// 大模型平台:阿里云百炼(通义千问-VL) 或 火山方舟(豆包-视觉)
+enum AiProvider { aliyun, doubao }
+
+extension AiProviderInfo on AiProvider {
+  /// 平台展示名
+  String get label {
+    switch (this) {
+      case AiProvider.aliyun:
+        return '阿里云百炼(通义千问)';
+      case AiProvider.doubao:
+        return '火山方舟(豆包)';
+    }
+  }
+
+  /// OpenAI 兼容端点
+  String get endpoint {
+    switch (this) {
+      case AiProvider.aliyun:
+        return 'https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions';
+      case AiProvider.doubao:
+        return 'https://ark.cn-beijing.volces.com/api/v3/chat/completions';
+    }
+  }
+
+  /// 默认视觉模型名
+  String get model {
+    switch (this) {
+      case AiProvider.aliyun:
+        return 'qwen-vl-plus';
+      case AiProvider.doubao:
+        // 豆包视觉模型(火山方舟通用视觉入口)
+        return 'doubao-vision-pro-32k-241028';
+    }
+  }
+
+  /// 申请 API Key 的官网地址
+  String get applyUrl {
+    switch (this) {
+      case AiProvider.aliyun:
+        return 'https://bailian.console.aliyun.com';
+      case AiProvider.doubao:
+        return 'https://console.volcengine.com/ark';
+    }
+  }
+}
+
 /// 食物识别服务:把照片发给多模态大模型,返回食物名称与热量估算。
 ///
-/// 默认使用「通义千问-VL」的 OpenAI 兼容接口。
-/// 你也可以换成 Gemini / GPT-4o,只需改 [_endpoint] 和请求体格式。
+/// 同时支持「阿里云百炼(通义千问-VL)」与「火山方舟(豆包视觉)」,
+/// 二者都是 OpenAI 兼容接口,只需切换 [provider] 即可。
 class FoodRecognitionService {
-  /// 阿里云百炼(通义千问)OpenAI 兼容端点
-  static const String _endpoint =
-      'https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions';
-  static const String _model = 'qwen-vl-plus';
-
   final String apiKey;
+  final AiProvider provider;
 
-  FoodRecognitionService({required this.apiKey});
+  FoodRecognitionService({
+    required this.apiKey,
+    this.provider = AiProvider.aliyun,
+  });
 
   bool get hasKey => apiKey.trim().isNotEmpty;
 
@@ -43,7 +88,7 @@ class FoodRecognitionService {
 ''';
 
     final body = {
-      'model': _model,
+      'model': provider.model,
       'messages': [
         {
           'role': 'user',
@@ -51,7 +96,7 @@ class FoodRecognitionService {
             {
               'type': 'image_url',
               'image_url': {'url': dataUri}
-         },
+            },
             {'type': 'text', 'text': prompt}
           ]
         }
@@ -59,7 +104,7 @@ class FoodRecognitionService {
     };
 
     final resp = await http.post(
-      Uri.parse(_endpoint),
+      Uri.parse(provider.endpoint),
       headers: {
         'Content-Type': 'application/json',
         'Authorization': 'Bearer $apiKey',
@@ -101,13 +146,6 @@ class FoodRecognitionService {
   /// 从可能带有 ```json ``` 包裹的文本中提取纯 JSON 段
   String _extractJson(String text) {
     var t = text.trim();
-    if (t.contains('```')) {
-      final start = t.indexOf('{');
-      final end = t.lastIndexOf('}');
-      if (start >= 0 && end > start) {
-        return t.substring(start, end + 1);
-      }
-    }
     final start = t.indexOf('{');
     final end = t.lastIndexOf('}');
     if (start >= 0 && end > start) {
