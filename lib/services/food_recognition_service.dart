@@ -1,5 +1,5 @@
 import 'dart:convert';
-import 'dart:io';
+import 'dart:typed_data';
 import 'package:http/http.dart' as http;
 import '../models/food_result.dart';
 
@@ -20,13 +20,15 @@ class FoodRecognitionService {
   bool get hasKey => apiKey.trim().isNotEmpty;
 
   /// 识别图片中的食物,返回 [MealResult]
-  Future<MealResult> recognize(File imageFile) async {
+  ///
+  /// [imageBytes] 为图片字节数组(Web / 手机通用,由 image_picker 的
+  /// XFile.readAsBytes() 提供)。
+  Future<MealResult> recognize(Uint8List imageBytes) async {
     if (!hasKey) {
       throw Exception('未配置 API Key,请先在「我的」页面填写 API Key。');
     }
 
-    final bytes = await imageFile.readAsBytes();
-    final base64Image = base64Encode(bytes);
+    final base64Image = base64Encode(imageBytes);
     final dataUri = 'data:image/jpeg;base64,$base64Image';
 
     const prompt = '''
@@ -77,7 +79,7 @@ class FoodRecognitionService {
     return MealResult(
       time: DateTime.now(),
       items: items,
-      imagePath: imageFile.path,
+      imageBase64: base64Image,
     );
   }
 

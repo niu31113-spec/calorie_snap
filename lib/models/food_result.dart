@@ -39,16 +39,21 @@ class FoodItem {
 class MealResult {
   final DateTime time;
   final List<FoodItem> items;
-  final String? imagePath;
 
-  MealResult({required this.time, required this.items, this.imagePath});
+  /// 图片的 base64 编码(不含 data: 前缀)。
+  /// 用 base64 而非文件路径,是为了在 Web / 手机 上通用,
+  /// 并能持久化后在历史页用 Image.memory 显示缩略图。
+  final String? imageBase64;
+
+  MealResult({required this.time, required this.items, this.imageBase64});
 
   double get totalCalories =>
       items.fold(0.0, (sum, item) => sum + item.calories);
 
   factory MealResult.fromJson(Map<String, dynamic> json) => MealResult(
         time: DateTime.parse(json['time'] as String),
-        imagePath: json['imagePath'] as String?,
+        // 兼容旧字段名 imagePath(旧数据无 base64,读为 null)
+        imageBase64: json['imageBase64'] as String?,
         items: (json['items'] as List)
             .map((e) => FoodItem.fromJson(e as Map<String, dynamic>))
             .toList(),
@@ -56,7 +61,7 @@ class MealResult {
 
   Map<String, dynamic> toJson() => {
         'time': time.toIso8601String(),
-        'imagePath': imagePath,
+        'imageBase64': imageBase64,
         'items': items.map((e) => e.toJson()).toList(),
       };
 }

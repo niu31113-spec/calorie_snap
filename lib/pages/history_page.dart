@@ -1,4 +1,4 @@
-import 'dart:io';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
@@ -75,8 +75,10 @@ class _MealCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final timeText = DateFormat('MM-dd HH:mm').format(meal.time);
     final names = meal.items.map((e) => e.name).join('、');
-    final hasImage =
-        meal.imagePath != null && File(meal.imagePath!).existsSync();
+    final imageBytes = (meal.imageBase64 != null &&
+            meal.imageBase64!.isNotEmpty)
+        ? base64Decode(meal.imageBase64!)
+        : null;
 
     return Card(
       child: Padding(
@@ -84,11 +86,11 @@ class _MealCard extends StatelessWidget {
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            if (hasImage)
+            if (imageBytes != null)
               ClipRRect(
                 borderRadius: BorderRadius.circular(8),
-                child: Image.file(File(meal.imagePath!),
-            width: 64, height: 64, fit: BoxFit.cover),
+                child: Image.memory(imageBytes,
+                    width: 64, height: 64, fit: BoxFit.cover),
               )
             else
               Container(

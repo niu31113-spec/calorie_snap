@@ -1,4 +1,4 @@
-import 'dart:io';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
@@ -18,7 +18,7 @@ class RecognizePage extends StatefulWidget {
 
 class _RecognizePageState extends State<RecognizePage> {
   final _picker = ImagePicker();
-  File? _image;
+  Uint8List? _imageBytes;
   MealResult? _result;
   bool _loading = false;
   String? _error;
@@ -29,8 +29,10 @@ class _RecognizePageState extends State<RecognizePage> {
     });
     final x = await _picker.pickImage(source: source, imageQuality: 85);
     if (x == null) return;
+    // XFile.readAsBytes() 在 Web 和手机上都可用,不依赖 dart:io
+    final bytes = await x.readAsBytes();
     setState(() {
-      _image = File(x.path);
+      _imageBytes = bytes;
       _result = null;
     });
     await _recognize();
@@ -42,7 +44,7 @@ class _RecognizePageState extends State<RecognizePage> {
       setState(() => _error = '还没有配置 API Key,请到「我的」页面填写。');
       return;
     }
-    if (_image == null) return;
+    if (_imageBytes == null) return;
 
     setState(() {
       _loading = true;
@@ -50,7 +52,7 @@ class _RecognizePageState extends State<RecognizePage> {
     });
     try {
       final service = FoodRecognitionService(apiKey: app.apiKey);
-      final result = await service.recognize(_image!);
+      final result = await service.recognize(_imageBytes!);
       if (result.items.isEmpty) {
         setState(() => _error = '没有识别到食物,换一张更清晰的照片试试。');
       } else {
@@ -136,7 +138,7 @@ class _RecognizePageState extends State<RecognizePage> {
   }
 
   Widget _buildImageArea() {
-    if (_image == null) {
+    if (_imageBytes == null) {
       return Container(
         height: 200,
         decoration: BoxDecoration(
@@ -154,7 +156,7 @@ class _RecognizePageState extends State<RecognizePage> {
       children: [
         ClipRRect(
           borderRadius: BorderRadius.circular(12),
-          child: Image.file(_image!, height: 220, width: double.infinity,
+          child: Image.memory(_imageBytes!, height: 220, width: double.infinity,
               fit: BoxFit.cover),
         ),
         if (_loading)
